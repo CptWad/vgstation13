@@ -53,6 +53,7 @@ var/global/num_vending_terminals = 1
 	var/shut_up = 0				//Stop spouting those godawful pitches!
 	var/extended_inventory = 0	//can we access the hidden inventory?
 	var/scan_id = 1
+	var/unhackable = 0
 	var/obj/item/weapon/coin
 	var/datum/wires/vending/wires = null
 	var/list/overlays_vending[2]//1 is the panel layer, 2 is the dangermode layer
@@ -103,7 +104,7 @@ var/global/num_vending_terminals = 1
 */
 
 /obj/machinery/vending/cultify()
-	new /obj/structure/cult/forge(loc)
+	new /obj/structure/cult_legacy/forge(loc)
 	..()
 
 /obj/machinery/vending/New()
@@ -191,6 +192,11 @@ var/global/num_vending_terminals = 1
 /obj/machinery/vending/Cross(atom/movable/mover, turf/target, height=1.5, air_group = 0)
 	if(istype(mover) && mover.checkpass(PASSMACHINE))
 		return 1
+	if(seconds_electrified > 0)
+		if(istype(mover, /obj/item))
+			var/obj/item/I = mover
+			if(I.siemens_coefficient > 0)
+				spark(src, 5)
 	return ..()
 
 /obj/machinery/vending/MouseDropTo(atom/movable/O as mob|obj, mob/user as mob)
@@ -474,6 +480,9 @@ var/global/num_vending_terminals = 1
 			to_chat(user, "<span class='info'>Nothing happens.</span>")
 
 	else if(istype(W, /obj/item/weapon/card))
+		if(!linked_db)
+			reconnect_database()
+
 		if(currently_vending) //We're trying to pay, not set the account
 			connect_account(user, W)
 			src.updateUsrDialog()
@@ -482,12 +491,14 @@ var/global/num_vending_terminals = 1
 		if(account_first_linked && linked_account) // Account check
 			if(!user.Adjacent(src))
 				return 0
-			if(!user.Adjacent(src))
-				return 0
-			if(W.get_owner_name_from_ID() != linked_account.owner_name)
-				to_chat(user, "[bicon(src)]<span class='warning'>Access denied. Your ID doesn't match the vending machine's connected account.</span>")
-				return 0
+			var/obj/item/weapon/card/card_swiped = W
 			visible_message("<span class='info'>[user] swipes a card through [src].</span>")
+			if(card_swiped.associated_account_number != linked_account.account_number)
+				to_chat(user, "[bicon(src)]<span class='warning'> Access denied. Your ID doesn't match the vending machine's connected account.</span>")
+				return 0
+			else if (!edit_mode && charge_flow_verify_security(linked_db, card_swiped, user, null, TRUE) != CARD_CAPTURE_SUCCESS)
+				to_chat(user, "[bicon(src)]<span class='warning'> Access denied. Security Violation.</span>")
+				return 0
 			edit_mode = !edit_mode
 			src.updateUsrDialog()
 			return
@@ -571,7 +582,7 @@ var/global/num_vending_terminals = 1
 /obj/machinery/vending/scan_card(var/obj/item/weapon/card/I)
 	if(!currently_vending)
 		return
-	if (istype(I, /obj/item/weapon/card/id))
+	if (istype(I, /obj/item/weapon/card))
 		var/charge_response = charge_flow(linked_db, I, usr, currently_vending.price - credits_held, linked_account, "Purchase of [currently_vending.product_name]", src.name, machine_id)
 		switch(charge_response)
 			if(CARD_CAPTURE_SUCCESS)
@@ -916,7 +927,7 @@ var/global/num_vending_terminals = 1
 		src.currently_vending = null
 
 	else if (href_list["buy"])
-		var/obj/item/weapon/card/card = usr.get_id_card()
+		var/obj/item/weapon/card/card = usr.get_card()
 		if(card)
 			connect_account(usr, card)
 		else
@@ -1192,6 +1203,9 @@ var/global/num_vending_terminals = 1
 		/obj/item/weapon/reagent_containers/food/drinks/coffee = 10,
 		/obj/item/weapon/reagent_containers/food/drinks/mug = 10
 		)
+	premium = list(
+		/obj/item/weapon/reagent_containers/food/drinks/bottle/pwine = 1
+	)
 	product_slogans = list(
 		"I hope nobody asks me for a bloody cup o' tea...",
 		"Alcohol is humanity's friend. Would you abandon a friend?",
@@ -2926,7 +2940,8 @@ var/global/num_vending_terminals = 1
 
 /obj/machinery/vending/trader	// Boxes are defined in trader.dm
 	name = "\improper Trader Supply"
-	desc = "Its coin groove has been modified."
+	desc = "Its wiring has been modified to prevent hacking."
+	unhackable = 1
 	product_slogans = list(
 		"Profits."
 	)
@@ -2942,36 +2957,40 @@ var/global/num_vending_terminals = 1
 		/obj/item/weapon/capsule = 60,
 		/obj/item/weapon/implantcase/peace = 5,
 		/obj/item/vaporizer = 1,
+		/obj/item/weapon/storage/trader_chemistry = 1,
+		/obj/structure/closet/secure_closet/wonderful = 1,
+		/obj/item/weapon/disk/shuttle_coords/vault/mecha_graveyard = 1,
+		/obj/item/weapon/reagent_containers/glass/beaker/bluespace = 1,
+		/obj/item/weapon/storage/bluespace_crystal = 1,
+		/obj/item/weapon/reagent_containers/food/snacks/borer_egg = 1,
+		/obj/item/clothing/shoes/clown_shoes/advanced = 1,
+		/obj/item/fish_eggs/seadevil = 1,
+		/obj/machinery/power/antiquesynth = 1,
 		)
 	prices = list(
 		/obj/item/clothing/suit/storage/trader = 100,
 		/obj/item/device/pda/trader = 100,
 		/obj/item/weapon/capsule = 10,
 		/obj/item/weapon/implantcase/peace = 100,
-		/obj/item/vaporizer = 100
+		/obj/item/vaporizer = 100,
+		/obj/item/weapon/storage/trader_chemistry = 200,
+		/obj/structure/closet/secure_closet/wonderful = 350,
+		/obj/item/weapon/disk/shuttle_coords/vault/mecha_graveyard = 100,
+		/obj/item/weapon/reagent_containers/glass/beaker/bluespace = 100,
+		/obj/item/weapon/storage/bluespace_crystal = 150,
+		/obj/item/weapon/reagent_containers/food/snacks/borer_egg = 100,
+		/obj/item/clothing/shoes/clown_shoes/advanced = 50,
+		/obj/item/fish_eggs/seadevil = 50,
+		/obj/machinery/power/antiquesynth = 350,
 		)
 
 	accepted_coins = list(/obj/item/weapon/coin/trader)
 
-	premium = list(
-		/obj/item/weapon/storage/trader_chemistry,
-		/obj/structure/closet/secure_closet/wonderful,
-		/obj/item/weapon/disk/shuttle_coords/vault/mecha_graveyard,
-		/obj/item/weapon/reagent_containers/glass/beaker/bluespace,
-		/obj/item/weapon/storage/bluespace_crystal,
-		/obj/item/weapon/reagent_containers/food/snacks/borer_egg,
-		/obj/item/clothing/shoes/clown_shoes/advanced,
-		/obj/item/fish_eggs/seadevil,
-		/obj/machinery/power/antiquesynth,
-		)
-
 /obj/machinery/vending/trader/New()
-
-	for(var/random_items = 1 to premium.len - 5)
-		premium.Remove(pick(premium))
-	if(premium.Find(/obj/item/weapon/disk/shuttle_coords/vault/mecha_graveyard))
-		load_dungeon(/datum/map_element/dungeon/mecha_graveyard)
-	premium.Add(pick(existing_typesof(/obj/item/borg/upgrade) - /obj/item/borg/upgrade/magnetic_gripper)) //A random borg upgrade minus the magnetic gripper. Time to jew the silicons!
+	load_dungeon(/datum/map_element/dungeon/mecha_graveyard)
+	var/list/upgrades = existing_typesof(/obj/item/borg/upgrade) - /obj/item/borg/upgrade/magnetic_gripper
+	for(var/i = 1 to 3)
+		premium.Add(pick_n_take(upgrades))
 
 	..()
 
@@ -3063,6 +3082,7 @@ var/global/num_vending_terminals = 1
 		/obj/item/toy/foamblade = 2,
 		/obj/item/weapon/capsule = 20,
 		/obj/item/toy/cards = 2,
+		/obj/item/toy/cards/une = 2
 	)
 	contraband = list(
 		/obj/item/toy/gun = 2,
@@ -3090,7 +3110,8 @@ var/global/num_vending_terminals = 1
 		/obj/item/toy/foamblade = 50,
 		/obj/item/toy/syndicateballoon/ntballoon = 100,
 		/obj/item/weapon/capsule = 10,
-		/obj/item/toy/cards = 35
+		/obj/item/toy/cards = 35,
+		/obj/item/toy/cards/une = 35
 	)
 	pack = /obj/structure/vendomatpack/circus
 
@@ -3114,7 +3135,8 @@ var/global/num_vending_terminals = 1
 /obj/machinery/vending/toggleSecuredPanelOpen(var/obj/toggleitem, var/mob/user)
 	if(!is_custom_machine)
 		return ..()
-	if(!account_first_linked || (user.get_visible_id() && user.get_visible_id().get_owner_name_from_ID() == linked_account.owner_name))
+	var/obj/item/weapon/card/C = user.get_card() //Looks for a debit card first
+	if(!account_first_linked || (C && C.associated_account_number == linked_account.account_number))
 		togglePanelOpen(toggleitem, user)
 		return 1
 	to_chat(user, "<span class='warning'>The machine requires an ID to unlock it.</span>")

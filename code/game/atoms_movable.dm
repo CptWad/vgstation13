@@ -145,9 +145,12 @@
 
 //TODO move this somewhere else
 /atom/movable/proc/set_glide_size(glide_size_override = 0, var/min = 0.9, var/max = WORLD_ICON_SIZE/2)
-	glide_size = max(min, glide_size_override)
-	if(glide_size > max)
+	if(!glide_size_override || glide_size_override > max)
 		glide_size = 0
+	else
+		glide_size = max(min, glide_size_override)
+	for(var/atom/movable/AM in contents)
+		AM.set_glide_size(glide_size, min, max)
 
 /atom/movable/Move(NewLoc, Dir = 0, step_x = 0, step_y = 0, var/glide_size_override = 0)
 	if(!loc || !NewLoc)
@@ -287,6 +290,12 @@
 	category = get_lock_cat(category)
 	if (!category) // String category which didn't exist.
 		return 0
+
+	if (istype(AM, /mob/living)) //checks if the atom is a mob, and removes any grabs from the mob to prevent !!FUN!!
+		var/mob/living/M = AM
+		for(var/obj/item/weapon/grab/G in M.grabbed_by)
+			if (istype(G, /obj/item/weapon/grab))
+				returnToPool(G)
 
 	AM.locked_to = src
 

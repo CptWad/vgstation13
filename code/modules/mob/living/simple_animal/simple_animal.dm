@@ -204,6 +204,9 @@ var/global/list/animal_count = list() //Stores types, and amount of animals of t
 
 	confused = max(0, confused - 1)
 
+	if(say_mute)
+		say_mute = max(say_mute-1, 0)
+
 	if(purge)
 		purge -= 1
 
@@ -238,41 +241,41 @@ var/global/list/animal_count = list() //Stores types, and amount of animals of t
 				bodytemperature += ((Environment.temperature - bodytemperature) / 5)
 
 			if(min_oxy)
-				if(Environment.molar_density("oxygen") < min_oxy / CELL_VOLUME)
+				if(Environment.molar_density(GAS_OXYGEN) < min_oxy / CELL_VOLUME)
 					atmos_suitable = 0
 					oxygen_alert = 1
 				else
 					oxygen_alert = 0
 
 			if(max_oxy)
-				if(Environment.molar_density("oxygen") > max_oxy / CELL_VOLUME)
+				if(Environment.molar_density(GAS_OXYGEN) > max_oxy / CELL_VOLUME)
 					atmos_suitable = 0
 
 			if(min_tox)
-				if(Environment.molar_density("toxins") < min_tox / CELL_VOLUME)
+				if(Environment.molar_density(GAS_PLASMA) < min_tox / CELL_VOLUME)
 					atmos_suitable = 0
 
 			if(max_tox)
-				if(Environment.molar_density("toxins") > max_tox / CELL_VOLUME)
+				if(Environment.molar_density(GAS_PLASMA) > max_tox / CELL_VOLUME)
 					atmos_suitable = 0
 					toxins_alert = 1
 				else
 					toxins_alert = 0
 
 			if(min_n2)
-				if(Environment.molar_density("nitrogen") < min_n2 / CELL_VOLUME)
+				if(Environment.molar_density(GAS_NITROGEN) < min_n2 / CELL_VOLUME)
 					atmos_suitable = 0
 
 			if(max_n2)
-				if(Environment.molar_density("nitrogen") > max_n2 / CELL_VOLUME)
+				if(Environment.molar_density(GAS_NITROGEN) > max_n2 / CELL_VOLUME)
 					atmos_suitable = 0
 
 			if(min_co2)
-				if(Environment.molar_density("carbon_dioxide") < min_co2 / CELL_VOLUME)
+				if(Environment.molar_density(GAS_CARBON) < min_co2 / CELL_VOLUME)
 					atmos_suitable = 0
 
 			if(max_co2)
-				if(Environment.molar_density("carbon_dioxide") > max_co2 / CELL_VOLUME)
+				if(Environment.molar_density(GAS_CARBON) > max_co2 / CELL_VOLUME)
 					atmos_suitable = 0
 
 	//Atmos effect
@@ -327,15 +330,8 @@ var/global/list/animal_count = list() //Stores types, and amount of animals of t
 	if(act == "scream")
 		desc = "makes a loud and pained whimper!"  //ugly hack to stop animals screaming when crushed :P
 		act = "me"
-	if(!desc && act != "me")
-		desc = "[act]."
-		act = "me"
 	..(act, type, desc)
 
-/mob/living/simple_animal/check_emote(message)
-	if(copytext(message, 1, 2) == "*")
-		to_chat(src, "<span class = 'notice'>This type of mob doesn't support this. Use the Me verb instead.</span>")
-		return 1
 
 /mob/living/simple_animal/proc/handle_automated_speech()
 
@@ -392,10 +388,10 @@ var/global/list/animal_count = list() //Stores types, and amount of animals of t
 
 		if(I_GRAB)
 			M.grab_mob(src)
-		
+
 		if(I_DISARM)
 			visible_message("<span class ='notice'>[M] [response_disarm] [src].</span>")
-		
+
 		if(I_HURT)
 			M.unarmed_attack_mob(src)
 			//adjustBruteLoss(harm_intent_damage)
@@ -752,8 +748,8 @@ var/global/list/animal_count = list() //Stores types, and amount of animals of t
 		walk(src,0)
 	return !spaced
 
-/mob/living/simple_animal/say()
-	if(speak_override)
+/mob/living/simple_animal/say(message, bubble_type)
+	if(speak_override && copytext(message, 1, 2) != "*")
 		return ..(pick(speak))
 	else
 		return ..()

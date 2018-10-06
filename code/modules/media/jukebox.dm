@@ -4,17 +4,6 @@
  * By N3X15
  *******************************/
 
-#define JUKEMODE_SHUFFLE     1 // Default
-#define JUKEMODE_REPEAT_SONG 2
-#define JUKEMODE_PLAY_ONCE   3 // Play, then stop.
-#define JUKEMODE_COUNT       3
-
-#define JUKEBOX_SCREEN_MAIN     1 // Default
-#define JUKEBOX_SCREEN_PAYMENT  2
-#define JUKEBOX_SCREEN_SETTINGS 3
-
-#define JUKEBOX_RELOAD_COOLDOWN 600 // 60s
-
 var/global/global_playlists = list()
 /proc/load_juke_playlists()
 	if(!config.media_base_url)
@@ -395,7 +384,7 @@ var/global/list/loopModeNames=list(
 /obj/machinery/media/jukebox/proc/generate_name()
 	return "[get_area(src).name] [name]"
 
-/obj/machinery/media/jukebox/scan_card(var/obj/item/weapon/card/id/C)
+/obj/machinery/media/jukebox/scan_card(var/obj/item/weapon/card/C)
 	var/remaining_credits_needed = credits_needed - credits_held
 	var/pos_name = generate_name()
 	var/charge_response = charge_flow(linked_db, C, usr, remaining_credits_needed, linked_account, "Song Selection", pos_name, 0)
@@ -412,6 +401,8 @@ var/global/list/loopModeNames=list(
 			visible_message("<span class='warning'>The machine buzzes, and flashes \"NOT ENOUGH FUNDS\" on the screen.</span>","You hear a buzz.")
 		if(CARD_CAPTURE_ACCOUNT_DISABLED)
 			visible_message("<span class='warning'>The machine buzzes, and flashes \"ACCOUNT DISABLED\" on the screen.</span>","You hear a buzz.")
+		if(CARD_CAPTURE_ACCOUNT_DISABLED_MERCHANT)
+			visible_message("<span class='warning'>The machine buzzes, and flashes \"MERCHANT ACCOUNT DISABLED\" on the screen.</span>","You hear a buzz.")
 		if(CARD_CAPTURE_FAILURE_BAD_ACCOUNT_PIN_COMBO)
 			visible_message("<span class='warning'>The machine buzzes, and flashes \"BAD ACCOUNT/PIN COMBO\" on the screen.</span>","You hear a buzz.")
 		if(CARD_CAPTURE_FAILURE_SECURITY_LEVEL)
@@ -443,11 +434,11 @@ var/global/list/loopModeNames=list(
 		if(panel_open)
 			wires.Interact(user)
 		return
-	if(istype(W,/obj/item/weapon/card/id))
+	if(istype(W,/obj/item/weapon/card))
 		if(!selected_song || screen!=JUKEBOX_SCREEN_PAYMENT)
 			visible_message("<span class='notice'>The machine buzzes.</span>","<span class='warning'>You hear a buzz.</span>")
 			return
-		var/obj/item/weapon/card/id/I = W
+		var/obj/item/weapon/card/I = W
 		connect_account(user, I)
 		attack_hand(user)
 	else if(istype(W,/obj/item/weapon/spacecash))
@@ -471,7 +462,7 @@ var/global/list/loopModeNames=list(
 		else
 			say("Your total is now $[num2septext(credits_needed-credits_held)].  Please insert more credit chips or swipe your ID.")
 		attack_hand(user)
-		
+
 
 /obj/machinery/media/jukebox/emag(mob/user)
 	if(!emagged)

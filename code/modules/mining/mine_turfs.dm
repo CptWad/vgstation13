@@ -89,7 +89,7 @@
 	temperature = T20C
 	mined_type = /turf/simulated/floor/asteroid/air
 	minimum_mine_time = 30 //3 seconds
-	
+
 //this one's for the snowmaps
 /turf/unsimulated/mineral/internal/ice
 	icon_state = "snow_rock"
@@ -98,7 +98,7 @@
 	no_finds = 1
 	oxygen = MOLES_O2STANDARD
 	nitrogen = MOLES_N2STANDARD
-	temperature = T0C	
+	temperature = T0C
 	mined_type = /turf/simulated/floor/plating/snow/cold
 
 /turf/unsimulated/mineral/internal/ice/New()
@@ -404,6 +404,8 @@ turf/unsimulated/mineral/ChangeTurf(var/turf/N, var/tell_universe=1, var/force_l
 		return
 
 	var/obj/item/weapon/ore/O = new mineral.ore (src)
+	O.pixel_x = rand(-16,16) * PIXEL_MULTIPLIER
+	O.pixel_y = rand(-16,16) * PIXEL_MULTIPLIER
 	if(istype(O))
 		if(!geologic_data)
 			geologic_data = new/datum/geosample(src)
@@ -418,10 +420,12 @@ turf/unsimulated/mineral/ChangeTurf(var/turf/N, var/tell_universe=1, var/force_l
 	switch(rockernaut)
 		if(TURF_CONTAINS_REGULAR_ROCKERNAUT)
 			var/mob/living/simple_animal/hostile/asteroid/rockernaut/R = new(src)
-			R.possessed_ore = mineral.ore
+			if(mineral)
+				R.possessed_ore = mineral.ore
 		if(TURF_CONTAINS_BOSS_ROCKERNAUT)
 			var/mob/living/simple_animal/hostile/asteroid/rockernaut/boss/R = new(src)
-			R.possessed_ore = mineral.ore
+			if(mineral)
+				R.possessed_ore = mineral.ore
 	//destroyed artifacts have weird, unpleasant effects
 	//make sure to destroy them before changing the turf though
 	if(artifact_find && artifact_fail)
@@ -452,7 +456,7 @@ turf/unsimulated/mineral/ChangeTurf(var/turf/N, var/tell_universe=1, var/force_l
 	if(mineral)
 		var/mineral_name = mineral.display_name
 		if(rockernaut)
-			return "embed_[mineral_name]"
+			return "[has_icon('icons/turf/mine_overlays.dmi',"embed_[mineral_name]")?"embed_[mineral_name]":"embed_Iron"]"
 		return mineral_name
 	return null
 
@@ -728,6 +732,7 @@ turf/unsimulated/mineral/ChangeTurf(var/turf/N, var/tell_universe=1, var/force_l
 	var/mineralSpawnChanceList = list(
 		"Iron"      = 50,
 		"Plasma"    = 25,
+		"Ice"		= 10,
 		"Uranium"   = 5,
 		"Gold"      = 5,
 		"Silver"    = 5,

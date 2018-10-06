@@ -28,13 +28,6 @@
 	var/next_harm_time = 0
 
 	var/mode = 0
-#define SECBOT_IDLE 		0		// idle
-#define SECBOT_HUNT 		1		// found target, hunting
-#define SECBOT_PREP_ARREST 	2		// at target, preparing to arrest
-#define SECBOT_ARREST		3		// arresting target
-#define SECBOT_START_PATROL	4		// start patrol
-#define SECBOT_PATROL		5		// patrolling
-#define SECBOT_SUMMON		6		// summoned by PDA
 
 	var/auto_patrol = 0		// set to make bot automatically patrol
 
@@ -63,6 +56,11 @@
 		/obj/item/weapon/melee/defibrillator
 		)
 
+	var/list/cannot_open = list(
+		/obj/machinery/door/firedoor,
+		/obj/machinery/door/mineral/resin,
+		/obj/machinery/door/mineral/cult,
+		)
 	light_color = LIGHT_COLOR_RED
 	power_change()
 		..()
@@ -188,28 +186,27 @@ Auto Patrol: []"},
 			src.declare_arrests = !src.declare_arrests
 			src.updateUsrDialog()
 
-/obj/machinery/bot/secbot/attackby(obj/item/weapon/W as obj, mob/user as mob)
+/obj/machinery/bot/secbot/attackby(obj/item/weapon/W, mob/user)
 	if(istype(W, /obj/item/weapon/card/id)||istype(W, /obj/item/device/pda))
-		if(src.allowed(user) && !open && !emagged)
-			src.locked = !src.locked
-			to_chat(user, "Controls are now [src.locked ? "locked." : "unlocked."]")
+		if(allowed(user) && !open && !emagged)
+			locked = !locked
+			to_chat(user, "Controls are now [locked ? "locked." : "unlocked."]")
+			updateUsrDialog()
 		else
 			if(emagged)
 				to_chat(user, "<span class='warning'>ERROR</span>")
-			if(open)
+			else if(open)
 				to_chat(user, "<span class='warning'>Please close the access panel before locking it.</span>")
 			else
 				to_chat(user, "<span class='warning'>Access denied.</span>")
 	else
-		..()
-	if(iswelder(W) && user.a_intent != "harm") // Any intent but harm will heal, so we shouldn't get angry.
-		return
-	if(!isscrewdriver(W) && (W.force) && (!target) ) // Added check for welding tool to fix #2432. Welding tool behavior is handled in superclass.
-		threatlevel = user.assess_threat(src)
-		threatlevel += PERP_LEVEL_ARREST_MORE
-		if(threatlevel > 0)
-			target = user
-			mode = SECBOT_HUNT
+		. = ..()
+		if(. && !target)
+			threatlevel = user.assess_threat(src)
+			threatlevel += PERP_LEVEL_ARREST_MORE
+			if(threatlevel > 0)
+				target = user
+				mode = SECBOT_HUNT
 
 /obj/machinery/bot/secbot/kick_act(mob/living/H)
 	..()
@@ -759,7 +756,7 @@ Auto Patrol: []"},
 /obj/machinery/bot/secbot/to_bump(M as mob|obj) //Leave no door unopened!
 	if((istype(M, /obj/machinery/door)) && (!isnull(src.botcard)))
 		var/obj/machinery/door/D = M
-		if(!istype(D, /obj/machinery/door/firedoor) && D.check_access(src.botcard))
+		if(!is_type_in_list(D, cannot_open) && D.check_access(src.botcard))
 			D.open()
 			src.frustration = 0
 	else if((istype(M, /mob/living/)) && (!src.anchored))
