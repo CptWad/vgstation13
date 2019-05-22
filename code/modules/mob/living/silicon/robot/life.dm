@@ -207,21 +207,6 @@
 		else
 			healths.icon_state = "health7"
 
-	/*if(syndicate && client)
-		if(ticker.mode.name == "traitor")
-			for(var/datum/mind/tra in ticker.mode.traitors)
-				if(tra.current)
-					var/I = image('icons/mob/mob.dmi', loc = tra.current, icon_state = "traitor")
-					src.client.images += I
-		if(src.connected_ai)
-			src.connected_ai.connected_robots -= src
-			src.connected_ai = null
-		if(src.mind)
-			if(!src.mind.special_role)
-				src.mind.special_role = "traitor"
-				ticker.mode.traitors += src.mind
-	*/
-
 	if(cells)
 		if(cell)
 			var/cellcharge = cell.charge/cell.maxcharge
@@ -302,14 +287,15 @@
 				gib()
 
 /mob/living/silicon/robot/proc/process_locks()
-	if(weapon_lock)
-		uneq_all()
-		weaponlock_time --
-		if(weaponlock_time <= 0)
+	if(modulelock)
+		if(uneq_all())
+			to_chat(src, "<span class='alert' style=\"font-family:Courier\">Module unequipped.</span>")
+		modulelock_time --
+		if(modulelock_time <= 0)
 			if(client)
-				to_chat(src, "<span class='warning'><B>Weapon Lock Timed Out!</span>")
-			weapon_lock = 0
-			weaponlock_time = 120
+				to_chat(src, "<span class='info' style=\"font-family:Courier\"><B>Module lock timed out!</span>")
+			modulelock = FALSE
+			modulelock_time = 120
 
 /mob/living/silicon/robot/fire_act(datum/gas_mixture/air, exposed_temperature, exposed_volume)
 	if(!module)

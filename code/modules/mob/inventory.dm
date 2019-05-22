@@ -293,11 +293,18 @@
 		//update_icons() // Redundant as u_equip will handle updating the specific overlay
 		return 1
 
+
 // Drops all and only equipped items, including items in hand
 /mob/proc/drop_all()
 	for (var/obj/item/I in get_all_slots())
 		drop_from_inventory(I)
 	drop_hands()
+	
+// deletes all and only equipped items, including items in hand
+/mob/proc/delete_all_equipped_items()
+	for (var/obj/item/I in get_all_slots())
+		qdel(I)
+	delete_held_items()
 
 //Drops the item in our hand - you can specify an item and a location to drop to
 
@@ -339,6 +346,10 @@
 /mob/proc/drop_hands(var/atom/Target, force_drop = 0) //drops both items
 	for(var/obj/item/I in held_items)
 		drop_item(I, Target, force_drop = force_drop)
+		
+/mob/proc/delete_held_items(var/atom/Target) //deletes both items
+	for(var/obj/item/I in held_items)
+		qdel(I)
 
 //TODO: phase out this proc
 /mob/proc/before_take_item(var/obj/item/W)	//TODO: what is this?
@@ -431,6 +442,21 @@
 		if(ispath(I))
 			return (locate(I) in get_equipped_items())
 		return (I in get_equipped_items())
+
+//Same as above, but checks for any item type in the list. Try to use a slot with large lists or it could end up fairly costly.
+/mob/proc/is_wearing_any(list/item_types, slot = null)
+	if(slot)
+		for(var/element in item_types)
+			if(ispath(element))
+				var/obj/item/item = get_item_by_slot(slot)
+				if(istype(item, element))
+					return item
+	else
+		for(var/element in item_types)
+			if(ispath(element))
+				var/obj/item/I = locate(element) in get_equipped_items()
+				if(I)
+					return I
 
 /mob/living/carbon/human/proc/equip_if_possible(obj/item/W, slot, act_on_fail = EQUIP_FAILACTION_DELETE) // since byond doesn't seem to have pointers, this seems like the best way to do this :/
 	//warning: icky code

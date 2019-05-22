@@ -97,13 +97,13 @@
 	var/obj/effect/rune/ajourn
 	var/druggy = 0			//Carbon
 	var/confused = 0		//Carbon
-	var/antitoxs = null
 	var/sleeping = 0		//Carbon
 	var/resting = 0			//Carbon
 	var/lying = 0
 	var/lying_prev = 0
 	var/canmove = 1
 	var/candrop = 1
+	var/tazed = 0
 
 	var/size = SIZE_NORMAL
 	//SIZE_TINY for tiny animals like mice and borers
@@ -277,6 +277,7 @@
 	var/list/languages[0]
 	var/event/on_spellcast
 	var/event/on_uattack
+	var/event/on_ruattack	//on restrained unarmed attack
 	var/event/on_logout
 	var/event/on_damaged
 	var/event/on_irradiate
@@ -295,7 +296,7 @@
 
 /mob/resetVariables()
 	..("callOnFace", "pinned", "embedded", "abilities", "grabbed_by", "requests", "mapobjs", "mutations", "spell_list", "viruses", "resistances", "radar_blips", "active_genes", \
-	"attack_log", "speak_emote", "alphas", "heard_by", "control_object", "orient_object", "actions", "held_items", "click_delayer", "attack_delayer", "special_delayer", \
+	"attack_log", "speak_emote", "alphas", "heard_by", "control_object", "orient_object", "actions", "held_items", "click_delayer", "attack_delayer", "throw_delayer", "special_delayer", \
 	"clong_delayer", args)
 
 	callOnFace = list()
@@ -324,3 +325,4 @@
 	attack_delayer  = new (1,ARBITRARILY_LARGE_NUMBER)
 	special_delayer = new (1,ARBITRARILY_LARGE_NUMBER)
 	clong_delayer   = new (10,ARBITRARILY_LARGE_NUMBER)
+	throw_delayer = new (3, ARBITRARILY_LARGE_NUMBER)

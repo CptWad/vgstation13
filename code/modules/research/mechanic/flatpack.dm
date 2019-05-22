@@ -264,3 +264,21 @@
 
 #undef Fl_ACTION
 */
+
+
+/obj/structure/closet/crate/flatpack/suit_modifier/New()
+	..()
+	machine = new /obj/machinery/suit_modifier(src)
+	new /obj/item/rig_module/health_readout(src)
+	
+/obj/structure/closet/crate/flatpack/soda_dispenser/New()
+	..()
+	machine = new /obj/machinery/chem_dispenser/soda_dispenser(src)
+	
+/obj/structure/closet/crate/flatpack/booze_dispenser/New()
+	..()
+	machine = new /obj/machinery/chem_dispenser/booze_dispenser(src)
+
+/obj/structure/closet/crate/flatpack/brewer/New()
+	..()
+	machine = new /obj/machinery/chem_dispenser/brewer(src)

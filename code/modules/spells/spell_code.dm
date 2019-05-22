@@ -97,6 +97,7 @@ var/list/spells = typesof(/spell) //needed for the badmin verb for now
 
 	var/list/holiday_required = list() // The holiday this spell is restricted to ! Leave empty if none.
 	var/block = 0//prevents some spells from being spamed
+	var/obj/delay_animation = null
 
 ///////////////////////
 ///SETUP AND PROCESS///
@@ -107,6 +108,11 @@ var/list/spells = typesof(/spell) //needed for the badmin verb for now
 
 	//still_recharging_msg = "<span class='notice'>[name] is still recharging.</span>"
 	charge_counter = charge_max
+
+/spell/proc/set_holder(var/new_holder)
+	if(holder == new_holder)
+		world.log << "[src] is trying to set its holder to the same holder!"
+	holder = new_holder
 
 /spell/proc/process()
 	spawn while(charge_counter < charge_max)
@@ -140,7 +146,7 @@ var/list/spells = typesof(/spell) //needed for the badmin verb for now
 
 /spell/proc/perform(mob/user = usr, skipcharge = 0, list/target_override) //if recharge is started is important for the trigger spells
 	if(!holder)
-		holder = user //just in case
+		set_holder(user) //just in case
 
 	var/list/targets = target_override
 
@@ -158,8 +164,14 @@ var/list/spells = typesof(/spell) //needed for the badmin verb for now
 		return
 	if(cast_delay && !spell_do_after(user, cast_delay))
 		block = 0
+		if (delay_animation)
+			qdel(delay_animation)
+		delay_animation = null
 		return
 	block = 0
+	if (delay_animation)
+		qdel(delay_animation)
+	delay_animation = null
 	if(before_target(user))
 		return
 
@@ -188,18 +200,23 @@ var/list/spells = typesof(/spell) //needed for the badmin verb for now
 //This is used with the wait_for_click spell flag to prepare spells to be cast on your next click
 /spell/proc/channel_spell(mob/user = usr, skipcharge = 0, force_remove = 0)
 	if(!holder)
-		holder = user //just in case
+		set_holder(user) //just in case
 	if(!force_remove && !currently_channeled)
 		if(!cast_check(skipcharge, user))
 			return 0
 		user.remove_spell_channeling() //In case we're swapping from an older spell to this new one
 		user.spell_channeling = user.on_uattack.Add(src, "channeled_spell")
+		if(spell_flags & CAN_CHANNEL_RESTRAINED)
+			user.spell_channeling = user.on_ruattack.Add(src, "channeled_spell")
 		connected_button.name = "(Ready) [name]"
 		currently_channeled = 1
 		connected_button.add_channeling()
 	else
 		var/event/E = user.on_uattack
 		E.handlers.Remove(user.spell_channeling)
+		var/event/ER = user.on_ruattack
+		if(ER)
+			ER.handlers.Remove(user.spell_channeling)
 		user.spell_channeling = null
 		currently_channeled = 0
 		connected_button.remove_channeling()

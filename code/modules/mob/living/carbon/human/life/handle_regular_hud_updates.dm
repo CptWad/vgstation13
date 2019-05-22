@@ -105,10 +105,7 @@
 			change_sight(removing = SEE_TURFS|SEE_OBJS)
 			var/datum/organ/internal/eyes/E = src.internal_organs_by_name["eyes"]
 			if(E)
-				see_in_dark = E.see_in_dark //species.darksight
-			else
-				see_in_dark = species.darksight
-			// You should really be blind but w/e.
+				see_in_dark = E.see_in_dark
 
 			see_invisible = see_in_dark > 2 ? SEE_INVISIBLE_LEVEL_ONE : SEE_INVISIBLE_LIVING
 
@@ -130,7 +127,7 @@
 			change_sight(adding = SEE_TURFS|SEE_MOBS|SEE_OBJS)
 			see_in_dark = 8
 			if(!druggy)
-				see_invisible = SEE_INVISIBLE_LEVEL_TWO
+				see_invisible = min(SEE_INVISIBLE_LEVEL_TWO, see_invisible)
     // Legacy Cult
 		if(seer == 1)
 			var/obj/effect/rune_legacy/R = locate() in loc
@@ -298,21 +295,27 @@
 			overlay_fullscreen("high", /obj/abstract/screen/fullscreen/high)
 		else
 			clear_fullscreen("high")
+		if(has_reagent_in_blood(INCENSE_MOONFLOWERS))
+			overlay_fullscreen("high_red", /obj/abstract/screen/fullscreen/high/red)
+		else
+			clear_fullscreen("high_red")
 
 		var/masked = 0
 
 		if(head)
-			if(istype(head, /obj/item/clothing/head/welding) || istype(head, /obj/item/clothing/head/helmet/space/unathi) || (/datum/action/item_action/toggle_helmet_mask in head.actions_types))
+			if(istype(head, /obj/item/clothing/head/welding) || istype(head, /obj/item/clothing/head/helmet/space/vox/civ/mushmen) || istype(head, /obj/item/clothing/head/helmet/space/unathi) || (/datum/action/item_action/toggle_helmet_mask in head.actions_types))
 				var/enable_mask = TRUE
 
 				var/datum/action/item_action/toggle_helmet_mask/action = locate(/datum/action/item_action/toggle_helmet_mask) in head.actions
 
 				if(action)
 					enable_mask = !action.up
-				else
+				else if(istype(head, /obj/item/clothing/head/welding))
 					var/obj/item/clothing/head/welding/O = head
 					enable_mask = !O.up
-
+				else if(istype(head, /obj/item/clothing/head/helmet/space/vox/civ/mushmen))
+					var/obj/item/clothing/head/helmet/space/vox/civ/mushmen/O = head
+					enable_mask = !O.up
 				if(enable_mask && tinted_weldhelh)
 					overlay_fullscreen("tint", /obj/abstract/screen/fullscreen/impaired, 2)
 					masked = 1
@@ -323,7 +326,9 @@
 				overlay_fullscreen("tint", /obj/abstract/screen/fullscreen/impaired, 2)
 				masked = 1
 
-		if(!masked)
+		var/clear_tint = !masked
+
+		if(clear_tint)
 			clear_fullscreen("tint")
 
 		if(machine)

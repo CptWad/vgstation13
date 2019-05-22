@@ -220,7 +220,7 @@
 /obj/structure/bed/chair/vehicle/wheelchair/motorized/Move(NewLoc, Dir = 0, step_x = 0, step_y = 0, glide_size_override = 0)
 	..()
 	if(internal_battery)
-		internal_battery.use(2) //Example use: 100 charge to get from the cargo desk to medbay side entrance
+		internal_battery.use(min(2, internal_battery.charge)) //Example use: 100 charge to get from the cargo desk to medbay side entrance
 
 /obj/structure/bed/chair/vehicle/wheelchair/motorized/getMovementDelay()
 	if(internal_battery && internal_battery.charge)
@@ -235,7 +235,7 @@
 		return ..()
 
 /obj/structure/bed/chair/vehicle/wheelchair/motorized/attackby(obj/item/weapon/W as obj, mob/user as mob)
-	if(isscrewdriver(W))
+	if(W.is_screwdriver(user))
 		user.visible_message("<span class='notice'>[user] screws [maintenance ? "closed" : "open"] \the [src]'s battery compartment.</span>", "<span class='notice'>You screw [maintenance ? "closed" : "open"] the battery compartment.</span>", "You hear screws being loosened.")
 		maintenance = !maintenance
 	else if(iscrowbar(W)&&maintenance)

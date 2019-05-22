@@ -43,7 +43,7 @@
 /obj/machinery/bunsen_burner/New()
 	..()
 	processing_objects.Remove(src)
-	create_reagents(50)
+	create_reagents(250)
 
 /obj/machinery/bunsen_burner/Destroy()
 	if(held_container)
@@ -82,13 +82,9 @@
 						return
 		else
 			if(!held_container && user.drop_item(W, src))
-				held_container = W
 				to_chat(user, "<span class='notice'>You put \the [held_container] onto \the [src].</span>")
-				var/image/I = image("icon"=W, "layer"=FLOAT_LAYER, "pixel_y" = 13 * PIXEL_MULTIPLIER)
-				var/image/I2 = image("icon"=src.icon, icon_state ="bunsen_prong", "layer"=FLOAT_LAYER)
-				overlays += I
-				overlays += I2
 				add_fingerprint(user)
+				load_item(W)
 				return 1 // avoid afterattack() being called
 	if(iswrench(W))
 		user.visible_message("<span class = 'warning'>[user] starts to deconstruct \the [src]!</span>","<span class = 'notice'>You start to deconstruct \the [src].</span>")
@@ -98,6 +94,13 @@
 			qdel(src)
 	else
 		..()
+
+/obj/machinery/bunsen_burner/proc/load_item(obj/item/weapon/W)
+	held_container = W
+	var/image/I = image("icon"=W, "layer"=FLOAT_LAYER, "pixel_x" = 2 * PIXEL_MULTIPLIER, "pixel_y" = 22 * PIXEL_MULTIPLIER - empty_Y_space(new /icon(W.icon, W.icon_state)))
+	var/image/I2 = image("icon"=src.icon, icon_state ="bunsen_prong", "layer"=FLOAT_LAYER)
+	overlays += I
+	overlays += I2
 
 /obj/machinery/bunsen_burner/process()
 	if(heating == BUNSEN_ON)
@@ -184,17 +187,20 @@
 
 /obj/machinery/bunsen_burner/AltClick()
 	if((!usr.Adjacent(src) || usr.incapacitated()) && !isAdminGhost(usr))
-		return
+		return ..()
 
 	var/list/choices = list(
-		"Turn On/Off" = 		image(icon = 'icons/mob/radial.dmi', icon_state = (heating == BUNSEN_ON ? "radial_off" : "radial_on")),
-		"Toggle Fuelport" = 	image(icon = 'icons/mob/radial.dmi', icon_state = (heating == BUNSEN_OPEN ? "radial_lock" : "radial_unlock")),
-		"Examine" =		image(icon = 'icons/mob/radial.dmi', icon_state = "radial_examine"),
+		list("Turn On/Off", (heating == BUNSEN_ON ? "radial_off" : "radial_on")),
+		list("Toggle Fuelport", (heating == BUNSEN_OPEN ? "radial_lock" : "radial_unlock")),
+		list("Examine", "radial_examine")
 	)
 	var/event/menu_event = new(owner = usr)
 	menu_event.Add(src, "radial_check_handler")
 
 	var/task = show_radial_menu(usr,loc,choices,custom_check = menu_event)
+	if(!radial_check(usr))
+		return
+
 	switch(task)
 		if("Turn On/Off")
 			verb_toggle()
@@ -235,6 +241,17 @@
 		if(BUNSEN_OPEN)
 			heating = BUNSEN_OFF
 			to_chat(user, "<span class = 'warning'>You close the fuel port on \the [src].</span>")
+
+
+/obj/machinery/bunsen_burner/mapped //for the sci break room
+
+
+obj/machinery/bunsen_burner/mapped/New()
+	..()
+	desc = "[initial(desc)] Perfect for keeping your coffee hot."
+	var/obj/item/weapon/reagent_containers/food/drinks/mug/coffeemug = new /obj/item/weapon/reagent_containers/food/drinks/mug
+	coffeemug.reagents.add_reagent(COFFEE, 30)
+	load_item(coffeemug)
 
 
 #undef BUNSEN_OPEN

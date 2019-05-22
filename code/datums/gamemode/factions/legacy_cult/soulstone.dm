@@ -24,8 +24,8 @@
 /obj/item/device/soulstone/attack(var/mob/living/M, mob/user as mob)
 	if(!istype(M, /mob/living/carbon) && !istype(M, /mob/living/simple_animal))
 		return ..()
-	if(istype(M, /mob/living/carbon/human/manifested))
-		to_chat(user, "The soul stone shard seems unable to pull the soul out of that poor manifested ghost back onto our plane.")
+	if(ismanifested(M))
+		to_chat(user, "\The [src] seems unable to pull the soul out of that powerful body.")
 		return
 	add_logs(user, M, "captured [M.name]'s soul", object=src)
 
@@ -102,8 +102,14 @@
 	icon_state = "construct-cult"
 	desc = "This eerie contraption looks like it would come alive if supplied with a missing ingredient."
 
+/obj/structure/constructshell/cult/alt
+	icon = 'icons/obj/cult.dmi'
+	icon_state = "shell"
+
 /obj/structure/constructshell/attackby(obj/item/O as obj, mob/user as mob)
-	if(istype(O, /obj/item/device/soulstone))
+	if(istype(O, /obj/item/device/soulstone/gem))
+		O.transfer_soul("PERFECT",src,user)
+	else if(istype(O, /obj/item/device/soulstone))
 		O.transfer_soul("CONSTRUCT",src,user)
 
 
@@ -237,15 +243,18 @@
 		return
 
 	var/mob/living/carbon/human/body = null
+	var/datum/mind/mind = null
 
 	if(istype(target,/mob/living/carbon/human))
 		body = target
 	else if(istype(add_target,/mob/living/carbon/human))
 		body = add_target
 
-	var/true_name = "a nobody"
+	var/true_name = "Unknown"
 
 	if(body)
+		if(body.mind)
+			mind = body.mind
 		true_name = body.real_name
 
 		for(var/obj/item/W in body)
@@ -269,26 +278,26 @@
 				anim(target = T, a_icon = 'icons/mob/mob.dmi', flick_anim = "dust-h", sleeptime = 26)
 
 		if(body.decapitated && (body.decapitated == target))//just making sure we're dealing with the right head
-			target.invisibility = 101
 			new /obj/item/weapon/skull(get_turf(target))
-	else
-		target.invisibility = 101
 
-		if(ismob(target))
-			var/mob/M = target
-			true_name = M.real_name
-			new /obj/effect/decal/cleanable/ash(get_turf(target))
-		else if(istype(target,/obj/item/organ/external/head))
-			var/obj/item/organ/external/head/H = target
-			var/mob/living/carbon/brain/BM = H.brainmob
-			true_name = BM.real_name
-			new /obj/item/weapon/skull(get_turf(target))
+	target.invisibility = 101 //It's not possible to interact with the body normally now, but we don't want to delete it just yet
+
+	if(ismob(target))
+		var/mob/M = target
+		true_name = M.real_name
+		new /obj/effect/decal/cleanable/ash(get_turf(target))
+	else if(istype(target,/obj/item/organ/external/head))
+		var/obj/item/organ/external/head/H = target
+		var/mob/living/carbon/brain/BM = H.brainmob
+		mind = BM.mind
+		true_name = BM.real_name
+		new /obj/item/weapon/skull(get_turf(target))
 
 	//Scary sound
 	playsound(get_turf(src), get_sfx("soulstone"), 50,1)
 
 	//Are we capturing a cult-banned player as a cultist? Sucks for them!
-	if (iscultist(user) && jobban_isbanned(body, ROLE_CULTIST))
+	if (iscultist(user) && (jobban_isbanned(body, CULTIST) || isantagbanned(body)))
 		to_chat(body, "<span class='danger'>A cultist tried to capture your soul, but due to past behaviour you have been banned from the role. Your body will instead dust away.</span>")
 		to_chat(user, "<span class='notice'>Their soul wasn't fit for our cult, and wasn't accepted by \the [src].</span>")
 
@@ -298,13 +307,16 @@
 			qdel(add_target)
 		return
 
+	message_admins("BLOODCULT: [key_name(body)] has been soul-stoned by [key_name(user)][iscultist(user) ? ", a cultist." : "a NON-cultist."].")
+	log_admin("BLOODCULT: [key_name(body)] has been soul-stoned by [key_name(user)][iscultist(user) ? ", a cultist." : "a NON-cultist."].")
+
 	//Creating a shade inside the stone and putting the victim in control
 	var/mob/living/simple_animal/shade/shadeMob = new(src)//put shade in stone
 	shadeMob.status_flags |= GODMODE //So they won't die inside the stone somehow
 	shadeMob.canmove = 0//Can't move out of the soul stone
-	shadeMob.name = "Shade of [true_name]"
+	shadeMob.name = "[true_name] the Shade"
 	shadeMob.real_name = "[true_name]"
-	shadeMob.ckey = targetClient.ckey
+	mind.transfer_to(shadeMob)
 	shadeMob.cancel_camera()
 
 	//Changing the soulstone's icon and description
@@ -317,19 +329,27 @@
 		dir = NORTH
 		update_icon()
 	user.update_inv_hands()
-	to_chat(shadeMob, "Your soul has been captured! You are now bound to [user.name]'s will, help them suceed in their goals at all costs.")
+	to_chat(shadeMob, "<span class='notice'>Your soul has been captured! You are now bound to [user.name]'s will, help them succeed in their goals at all costs.</span>")
 	to_chat(user, "<span class='notice'>[true_name]'s soul has been ripped from their body and stored within the soul stone.</span>")
 
 	//Is our user a cultist? Then you're a cultist too now!
 	if (iscultist(user))
 		var/datum/role/cultist/newCultist = new
-		newCultist.AssignToRole(user.mind,1)
+		newCultist.AssignToRole(shadeMob.mind,1)
 		var/datum/faction/bloodcult/cult = find_active_faction_by_type(/datum/faction/bloodcult)
 		if (!cult)
 			cult = ticker.mode.CreateFaction(/datum/faction/bloodcult, null, 1)
 		cult.HandleRecruitedRole(newCultist)
 		newCultist.OnPostSetup()
 		newCultist.Greet(GREET_SOULSTONE)
+		newCultist.conversion["soulstone"] = user
+		cult_risk(user)//risk of exposing the cult early if too many soul trappings
+
+	else
+		if (iscultist(shadeMob))
+			to_chat(shadeMob, "<span class='userdanger'>Your master is NOT a cultist, but you are. You are still to follow their commands and help them in their goal.</span>")
+			to_chat(shadeMob, "<span class='sinister'>Your loyalty to Nar-Sie temporarily wanes, but the God takes his toll on your treacherous mind. You only remember of who converted you.</span>")
+			shadeMob.mind.decult()
 
 	//Pretty particles
 	var/turf/T1 = get_turf(target)
@@ -391,33 +411,41 @@
 
 					if (iscultist(U) && !iscultist(T))
 						var/datum/role/cultist/newCultist = new
-						newCultist.AssignToRole(U.mind,1)
+						newCultist.AssignToRole(T.mind,1)
 						var/datum/faction/bloodcult/cult = find_active_faction_by_type(/datum/faction/bloodcult)
 						if (!cult)
 							cult = ticker.mode.CreateFaction(/datum/faction/bloodcult, null, 1)
 						cult.HandleRecruitedRole(newCultist)
 						newCultist.OnPostSetup()
 						newCultist.Greet(GREET_SOULSTONE)
+						newCultist.conversion["soulstone"] = U
 		if("CONSTRUCT")
 			var/obj/structure/constructshell/T = target
 			var/obj/item/device/soulstone/C = src
 			var/mob/living/simple_animal/shade/A = locate() in C
 			var/mob/living/simple_animal/construct/Z
 			if(A)
-				var/construct_class = alert(U, "Please choose which type of construct you wish to create.",,"Juggernaut","Wraith","Artificer")
+				var/list/choices = list(
+					list("Artificer", "radial_artificer", "Though fragile, this construct can reshape its surroundings, conjuring walls, floors, and most importantly, repair other constructs. Additionally, they may operate some cult structures."),
+					list("Wraith", "radial_wraith", "The fastest of deadliest of constructs, at the cost of a relatively fragile build. Can easily scout and escape by phasing through the veil. Its claws can pry open unpowered airlocks."),
+					list("Juggernaut", "radial_juggernaut", "Sturdy, powerful, at the cost of a snail's pace. However, its fists can break walls apart, along with some machinery. Can conjure a temporary forcefield."),
+				)
+				var/construct_class = show_radial_menu(U,T,choices,'icons/obj/cult_radial3.dmi',"radial-cult2")
+				if (!T.Adjacent(U) || (C != U.get_active_hand()) || !construct_class || A.loc != C)
+					return
 				switch(construct_class)
 					if("Juggernaut")
 						Z = new /mob/living/simple_animal/construct/armoured (get_turf(T.loc))
-						Z.key = A.key
+						A.mind.transfer_to(Z)
 						qdel(T)
-						to_chat(Z, "<B>You are a Juggernaut. Though slow, your shell can withstand extreme punishment, your body can reflect energy and laser weapons, and you can create temporary shields that blocks pathing and projectiles. You fists can punch people and regular walls appart.</B>")
+						to_chat(Z, "<B>You are a Juggernaut. Though slow, your shell can withstand extreme punishment, your body can reflect energy and laser weapons, and you can create temporary shields that blocks pathing and projectiles. You fists can punch people and regular walls apart.</B>")
 						to_chat(Z, "<B>You are still bound to serve your creator, follow their orders and help them complete their goals at all costs.</B>")
 						Z.cancel_camera()
 						deleteafter = 1
 
 					if("Wraith")
 						Z = new /mob/living/simple_animal/construct/wraith (get_turf(T.loc))
-						Z.key = A.key
+						A.mind.transfer_to(Z)
 						qdel(T)
 						to_chat(Z, "<B>You are a Wraith. Though relatively fragile, you are fast, deadly, and even able to phase through walls for a few seconds. Use it both for surprise attacks and strategic retreats.</B>")
 						to_chat(Z, "<B>You are still bound to serve your creator, follow their orders and help them complete their goals at all costs.</B>")
@@ -426,7 +454,7 @@
 
 					if("Artificer")
 						Z = new /mob/living/simple_animal/construct/builder (get_turf(T.loc))
-						Z.key = A.key
+						A.mind.transfer_to(Z)
 						qdel(T)
 						to_chat(Z, "<B>You are an Artificer. You are incredibly weak and fragile, but you can heal both yourself and other constructs (by clicking on yourself/them). You can build (and deconstruct) new walls and floors, or replace existing ones by clicking on them, as well as place pylons that act as light source (these block paths but can be easily broken),</B><I>and most important of all you can produce the tools to create new constructs</I><B> (remember to periodically produce new soulstones for your master, and place empty shells in your hideout or when asked.).</B>")
 						to_chat(Z, "<B>You are still bound to serve your creator, follow their orders and help them complete their goals at all costs.</B>")
@@ -434,12 +462,66 @@
 						deleteafter = 1
 				if(islegacycultist(U))
 					var/datum/faction/cult/narsie/cult_round = find_active_faction_by_member(U.mind.GetRole(LEGACY_CULTIST))
-					if(cult_round && istype(cult_round))
-						cult_round.HandleRecruitedMind(Z.mind)
-
+					if(istype(cult_round))
+						cult_round.HandleRecruitedMind(Z.mind, TRUE)
+				Z.real_name = A.real_name
+				Z.name = "[Z.real_name] the [construct_class]"
 				name = "Soul Stone Shard"
 			else
-				to_chat(U, "<span class='warning'><b>Creation failed!</b>: The soul stone is empty! Go kill someone!</span>")
+				to_chat(U, "<span class='warning'>\The [src] is empty! The shell doesn't react.</span>")
+		if("PERFECT")
+			var/obj/structure/constructshell/T = target
+			var/obj/item/device/soulstone/C = src
+			var/mob/living/simple_animal/shade/A = locate() in C
+			var/mob/living/simple_animal/construct/Z
+			if(A)
+				var/list/choices = list(
+					list("Artificer", "radial_artificer2", "Though fragile, this construct can reshape its surroundings, conjuring walls, floors, and most importantly, repair other constructs. Additionally, they may operate some cult structures. <b>Can open gateways to summon eldritch monsters from the realm of Nar-Sie.</b>"),
+					list("Wraith", "radial_wraith2", "The fastest of deadliest of constructs, at the cost of a relatively fragile build. Can easily scout and escape by phasing through the veil. Its claws can pry open unpowered airlocks. <b>Can fire bolts that nail their victims to the floor.</b>"),
+					list("Juggernaut", "radial_juggernaut2", "Sturdy, powerful, at the cost of a snail's pace. However, its fists can break walls apart, along with some machinery. Can conjure a temporary forcefield. <b>Can dash forward over a large distance, knocking down anyone in front of them.</b>"),
+				)
+				var/construct_class = show_radial_menu(U,T,choices,'icons/obj/cult_radial3.dmi',"radial-cult2")
+				if (!T.Adjacent(U) || (C != U.get_active_hand()) || !construct_class || A.loc != C)
+					return
+				switch(construct_class)
+					if("Juggernaut")
+						Z = new /mob/living/simple_animal/construct/armoured/perfect (get_turf(T.loc))
+						A.mind.transfer_to(Z)
+						qdel(T)
+						to_chat(Z, "<B>You are a Juggernaut. Though slow, your shell can withstand extreme punishment, your body can reflect energy and laser weapons, and you can create temporary shields that blocks pathing and projectiles. You fists can punch people and regular walls apart.</B>")
+						to_chat(Z, "<B>You can dash over a large distance, knocking down anyone on your path.</B>")
+						to_chat(Z, "<B>You are still bound to serve your creator, follow their orders and help them complete their goals at all costs.</B>")
+						Z.cancel_camera()
+						deleteafter = 1
+
+					if("Wraith")
+						Z = new /mob/living/simple_animal/construct/wraith/perfect (get_turf(T.loc))
+						A.mind.transfer_to(Z)
+						qdel(T)
+						to_chat(Z, "<B>You are a Wraith. Though relatively fragile, you are fast, deadly, and even able to phase through walls for a few seconds. Use it both for surprise attacks and strategic retreats.</B>")
+						to_chat(Z, "<B>You can fire red bolts that can temporarily prevent their victims from moving. You recharge a bolt every 5 seconds, up to 3 bolts.</B>")
+						to_chat(Z, "<B>You are still bound to serve your creator, follow their orders and help them complete their goals at all costs.</B>")
+						Z.cancel_camera()
+						deleteafter = 1
+
+					if("Artificer")
+						Z = new /mob/living/simple_animal/construct/builder/perfect (get_turf(T.loc))
+						A.mind.transfer_to(Z)
+						qdel(T)
+						to_chat(Z, "<B>You are an Artificer. You are incredibly weak and fragile, but you can heal both yourself and other constructs (by clicking on yourself/them). You can build (and deconstruct) new walls and floors, or replace existing ones by clicking on them, as well as place pylons that act as light source (these block paths but can be easily broken),</B><I>and most important of all you can produce the tools to create new constructs</I><B> (remember to periodically produce new soulstones for your master, and place empty shells in your hideout or when asked.).</B>")
+						to_chat(Z, "<B>You can channel a gateway from the realm of Nar-Sie to summon a minion to protect an area.</B>")
+						to_chat(Z, "<B>You are still bound to serve your creator, follow their orders and help them complete their goals at all costs.</B>")
+						Z.cancel_camera()
+						deleteafter = 1
+				if(islegacycultist(U))
+					var/datum/faction/cult/narsie/cult_round = find_active_faction_by_member(U.mind.GetRole(LEGACY_CULTIST))
+					if(istype(cult_round))
+						cult_round.HandleRecruitedMind(Z.mind, TRUE)
+				Z.real_name = A.real_name
+				Z.name = "[Z.real_name] the [construct_class]"
+				name = "Soul Stone Shard"
+			else
+				to_chat(U, "<span class='warning'>\The [src] is empty! The shell doesn't react.</span>")
 	if(deleteafter)
 		for(var/atom/A in src)//we get rid of the empty shade once we've transferred its mind to the construct, so it isn't dropped on the floor when the soulstone is destroyed.
 			qdel(A)

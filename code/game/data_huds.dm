@@ -150,6 +150,8 @@ proc/process_sec_hud(var/mob/M, var/advanced_mode,var/mob/eye)
 			if(R)
 				holder = perp.hud_list[WANTED_HUD]
 				switch(R.fields["criminal"])
+					if("*High Threat*")
+						holder.icon_state = "hudterminate"
 					if("*Arrest*")
 						holder.icon_state = "hudwanted"
 					if("Incarcerated")
@@ -242,3 +244,28 @@ proc/process_sec_hud(var/mob/M, var/advanced_mode,var/mob/eye)
 		O.process_hud(src)
 		if(!druggy)
 			see_invisible = SEE_INVISIBLE_LIVING
+
+//Artificer HUD
+proc/process_construct_hud(var/mob/M, var/mob/eye)
+	if(!M)
+		return
+	if(!M.client)
+		return
+	var/client/C = M.client
+	var/image/holder
+	var/turf/T
+	if(eye)
+		T = get_turf(eye)
+	else
+		T = get_turf(M)
+	for(var/mob/living/simple_animal/construct/construct in range(T))
+		if(!check_HUD_visibility(construct, M))
+			continue
+
+		holder = construct.hud_list[CONSTRUCT_HUD]
+		if(holder)
+			if(construct.isDead())
+				holder.icon_state = "consthealth0"
+			else
+				holder.icon_state = "consthealth[10*round((construct.health/construct.maxHealth)*10)]"
+			C.images += holder

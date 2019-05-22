@@ -33,6 +33,10 @@
 //For when you need to set factions and factions_allowed not on compile
 /datum/gamemode/proc/SetupFactions()
 
+// Infos on the mode.
+/datum/gamemode/proc/AdminPanelEntry()
+	return
+
 /datum/gamemode/proc/Setup()
 	if(minimum_player_count && minimum_player_count < get_player_count())
 		TearDown()
@@ -42,6 +46,12 @@
 	var/RolesSuccess = CreateRoles()
 	return FactionSuccess && RolesSuccess
 
+//1 = station, 2 = centcomm
+/datum/gamemode/proc/ShuttleDocked(var/state)
+	for(var/datum/faction/F in factions)
+		F.ShuttleDocked(state)
+	for(var/datum/role/R in orphaned_roles)
+		R.ShuttleDocked(state)
 
 /*===FACTION RELATED STUFF===*/
 
@@ -177,6 +187,9 @@
 	spawn (ROUNDSTART_LOGOUT_REPORT_TIME)
 		display_roundstart_logout_report()
 
+	spawn (rand(INTERCEPT_TIME_LOW , INTERCEPT_TIME_HIGH))
+		send_intercept()
+
 	feedback_set_details("round_start","[time2text(world.realtime)]")
 	if(ticker && ticker.mode)
 		feedback_set_details("game_mode","[ticker.mode]")
@@ -239,7 +252,7 @@
 
 /datum/gamemode/proc/check_finished()
 	for(var/datum/faction/F in factions)
-		if(F.check_win())
+		if (F.check_win())
 			return 1
 	if(emergency_shuttle.location==2 || ticker.station_was_nuked)
 		return 1
@@ -248,3 +261,6 @@
 
 /datum/gamemode/proc/declare_completion()
 	return GetScoreboard()
+
+/datum/gamemode/proc/mob_destroyed(var/mob/M)
+	return

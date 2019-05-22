@@ -45,7 +45,7 @@
 	var/can_have_carts = TRUE
 
 	var/mob/occupant
-	lock_type = /datum/locking_category/buckle/chair/vehicle
+	mob_lock_type = /datum/locking_category/buckle/chair/vehicle
 	var/wreckage_type = /obj/effect/decal/mecha_wreckage/vehicle
 	var/last_warn
 
@@ -126,7 +126,7 @@
 					to_chat(user, "<span class='notice'>You don't need a key.</span>")
 		else
 			to_chat(user, "<span class='notice'>\The [src] already has \the [heldkey] in it.</span>")
-	else if(isscrewdriver(W) && !heldkey)
+	else if(W.is_screwdriver(user) && !heldkey)
 		var/mob/living/carbon/human/H = user
 		to_chat(user, "<span class='warning'>You jam \the [W] into \the [src]'s ignition and feel like a genius as you try turning it!</span>")
 		playsound(src, "sound/items/screwdriver.ogg", 10, 1)
@@ -147,9 +147,10 @@
 /obj/structure/bed/chair/vehicle/proc/check_key(var/mob/user)
 	if(!keytype)
 		return 1
-	if(mykey && heldkey)
-		return 1
-	return user.is_holding_item(mykey)
+	if(mykey)
+		return heldkey == mykey || user.is_holding_item(mykey)
+	return istype(heldkey, keytype) || user.find_held_item_by_type(keytype)
+
 
 /obj/structure/bed/chair/vehicle/relaymove(var/mob/living/user, direction)
 	if(user.incapacitated())
@@ -157,7 +158,7 @@
 		return
 	if(!check_key(user))
 		if(can_warn())
-			to_chat(user, "<span class='notice'>You'll need the keys in one of your hands to drive \the [src].</span>")
+			to_chat(user, "<span class='notice'>You'll need the key in one of your hands or inside the ignition slot to drive \the [src].</span>")
 		return 0
 	if(empstun > 0)
 		if(user && can_warn(user))
@@ -402,7 +403,7 @@
 	if (loc == oldloc)
 		return
 	if(next_cart)
-		next_cart.Move(oldloc)
+		next_cart.Move(oldloc, glide_size_override = src.glide_size)
 
 /obj/structure/bed/chair/vehicle/proc/disconnected() //proc that carts call, we have no use for it
 	return

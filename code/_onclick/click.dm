@@ -83,6 +83,9 @@
 		CtrlClickOn(A)
 		return
 
+	if(attempt_crawling(A))
+		return
+
 	if(isStunned())
 		return
 
@@ -237,7 +240,8 @@
 	Not currently used by anything but could easily be.
 */
 /mob/proc/RestrainedClickOn(var/atom/A)
-	return
+	if(INVOKE_EVENT(on_ruattack,list("atom"=A))) //This returns 1 when doing an action intercept
+		return
 
 /*
 	Middle click

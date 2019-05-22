@@ -22,7 +22,7 @@
 		message_admins("Error: trying to give a vampire power to a non-vampire.")
 		return FALSE
 
-	if (spell_path)
+	if (spell_path && !(locate(spell_path) in V.antag.current.spell_list))
 		var/spell/S = new spell_path
 		V.antag.current.add_spell(S)
 
@@ -123,7 +123,7 @@
 /datum/power/vampire/mature
 	blood_threeshold = 400
 	id = VAMP_MATURE
-	helptext = "You have reached physical maturity. You are more resistant to holy things, and your vision has been improved greatly."
+	helptext = "You have reached physical maturity. You are more vulnerable to holy things, and your vision has been improved greatly."
 	store_in_memory = TRUE
 
 /* Tier 6 (/vg/) */

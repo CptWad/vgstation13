@@ -184,12 +184,12 @@ For vending packs, see vending_packs.dm*/
 
 	onclose(user, "computer")
 
-/obj/machinery/computer/supplycomp/attackby(I as obj, user as mob)
+/obj/machinery/computer/supplycomp/attackby(obj/item/I as obj, user as mob)
 	if(istype(I,/obj/item/weapon/card/emag) && !hacked)
 		to_chat(user, "<span class='notice'>Special supplies unlocked.</span>")
 		hacked = 1
 		return
-	if(isscrewdriver(I))
+	if(I.is_screwdriver(user))
 		playsound(loc, 'sound/items/Screwdriver.ogg', 50, 1)
 		if(do_after(user, src, 20))
 			if (stat & BROKEN)
@@ -279,7 +279,7 @@ For vending packs, see vending_packs.dm*/
 
 	ui = nanomanager.try_update_ui(user, src, ui_key, ui, data, force_open)
 	if (!ui)
-		ui = new(user, src, ui_key, "supply_console.tmpl", name, SCREEN_WIDTH, SCREEN_HEIGHT)
+		ui = new(user, src, ui_key, "supply_console.tmpl", name, 600, 660)
 		ui.set_initial_data(data)
 		ui.open()
 
@@ -359,7 +359,7 @@ For vending packs, see vending_packs.dm*/
 			to_chat(usr, "<span class='warning'>You can only afford [max_crates] crates.</span>")
 			return
 		var/timeout = world.time + 600
-		var/reason = utf8_sanitize(input(usr,"Reason:","Why do you require this item?","") as null|text, usr, REASON_LEN)
+		var/reason = stripped_input(usr,"Reason:","Why do you require this item?","",REASON_LEN)
 		if(world.time > timeout)
 			return
 		if(!reason)
@@ -527,7 +527,7 @@ For vending packs, see vending_packs.dm*/
 
 	ui = nanomanager.try_update_ui(user, src, ui_key, ui, data, force_open)
 	if(!ui)
-		ui = new(user, src, ui_key, "order_console.tmpl", name, SCREEN_WIDTH, SCREEN_HEIGHT)
+		ui = new(user, src, ui_key, "order_console.tmpl", name, 600, 660)
 		ui.set_initial_data(data)
 		ui.open()
 
@@ -584,7 +584,7 @@ For vending packs, see vending_packs.dm*/
 			var/max_crates = round((account.money - total_money_req) / P.cost)
 			to_chat(usr, "<span class='warning'>You can only afford [max_crates] crates.</span>")
 			return
-		var/reason = utf8_sanitize(input(usr,"Reason:","Why do you require this item?","") as null|text, usr, REASON_LEN)
+		var/reason = stripped_input(usr,"Reason:","Why do you require this item?","",REASON_LEN)
 		if(world.time > timeout)
 			return
 		if(!reason)

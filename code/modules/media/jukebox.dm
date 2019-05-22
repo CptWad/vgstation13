@@ -98,37 +98,37 @@ var/global/global_playlists = list()
 
 	var/emagged = 0
 
-	New(var/list/json)
-		title  = json["title"]
-		artist = json["artist"]
-		album  = json["album"]
+/datum/song_info/New(var/list/json)
+	title  = json["title"]
+	artist = json["artist"]
+	album  = json["album"]
 
-		url    = json["url"]
+	url    = json["url"]
 
-		length = text2num(json["length"])
+	length = text2num(json["length"])
 
-	proc/display()
-		var/str="\"[title]\""
-		if(artist!="")
-			str += ", by [artist]"
-		if(album!="")
-			str += ", from '[album]'"
-		return str
+/datum/song_info/proc/display()
+	var/str="\"[title]\""
+	if(artist!="")
+		str += ", by [artist]"
+	if(album!="")
+		str += ", from '[album]'"
+	return str
 
-	proc/displaytitle()
-		if(artist==""&&title=="")
-			return "\[NO TAGS\]"
-		var/str=""
-		if(artist!="")
-			str += artist+" - "
-		if(title!="")
-			str += "\"[title]\""
-		else
-			str += "Untitled"
-		// Only show album if we have to.
-		if(album!="" && artist == "")
-			str += " ([album])"
-		return str
+/datum/song_info/proc/displaytitle()
+	if(artist==""&&title=="")
+		return "\[NO TAGS\]"
+	var/str=""
+	if(artist!="")
+		str += artist+" - "
+	if(title!="")
+		str += "\"[title]\""
+	else
+		str += "Untitled"
+	// Only show album if we have to.
+	if(album!="" && artist == "")
+		str += " ([album])"
+	return str
 
 
 var/global/list/loopModeNames=list(
@@ -728,8 +728,6 @@ var/global/list/loopModeNames=list(
 	//current_song=0
 	playing=0
 	update_music()
-	return
-
 
 /obj/machinery/media/jukebox/npc_tamper_act(mob/living/L)
 	if(!panel_open)
@@ -744,6 +742,20 @@ var/global/list/loopModeNames=list(
 	playing=!playing
 	update_music()
 	update_icon()
+
+/obj/machinery/media/jukebox/attack_construct(var/mob/user)
+	if (!Adjacent(user))
+		return 0
+	if(istype(user,/mob/living/simple_animal/construct/armoured))
+		playsound(src, 'sound/weapons/heavysmash.ogg', 75, 1)
+		shake(1, 3)
+		if(stat & NOPOWER || any_power_cut())
+			return
+		playing=!playing
+		update_music()
+		update_icon()
+		return 1
+	return 0
 
 /obj/machinery/media/jukebox/bar
 	department = "Civilian"
@@ -931,8 +943,10 @@ var/global/list/loopModeNames=list(
 
 /obj/item/weapon/vinyl/New(loc,U,F)
 	..(loc)
-	unformatted = U
-	formatted = F
+	if(U)
+		unformatted = U
+	if(F)
+		formatted = F
 	name = "nanovinyl - [formatted]"
 
 //Premades

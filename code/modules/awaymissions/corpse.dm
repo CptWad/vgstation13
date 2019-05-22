@@ -750,6 +750,34 @@
 	corpsemask = /obj/item/clothing/mask/breath
 	corpsehelmet = /obj/item/clothing/head/helmet/space/capspace
 
+/obj/effect/landmark/corpse/waifu
+	name = "Waifu"
+	corpseuniform = /obj/item/clothing/under/schoolgirl
+	corpseshoes = /obj/item/clothing/shoes/kneesocks
+	corpsehelmet = /obj/item/clothing/head/kitty
+	corpseradio = /obj/item/device/radio/headset
+	corpseid = 1
+	corpseidjob = "Waifu"
+	corpseidaccess = "Assistant"
+	corpsegender = G_FEMALE
+
+/obj/effect/landmark/corpse/waifu/secfu //bodybag sold separately.
+	corpseuniform = /obj/item/clothing/under/securityskirt/elite
+	corpsehelmet = /obj/item/clothing/head/beret/sec
+	corpseback = /obj/item/weapon/storage/backpack/security
+	corpseradio = /obj/item/device/radio/headset/headset_sec
+	corpseglasses = /obj/item/clothing/glasses/sunglasses/sechud
+	corpsebelt = /obj/item/weapon/storage/belt/security
+	corpsegloves = /obj/item/clothing/gloves/black
+	corpseshoes = /obj/item/clothing/shoes/jackboots
+	corpsepocket1 = /obj/item/weapon/handcuffs
+	corpsepocket2 = /obj/item/device/flash
+	corpseid = 1
+	name = "Lucy Pinata"
+	corpseidjob = "Waifu"
+	corpseidaccess = "Security Officer"
+	corpsegender = G_FEMALE
+
 /////////////////Non-Crew (but still playable at roundstart)//////////////////////
 
 /obj/effect/landmark/corpse/trader
@@ -948,6 +976,19 @@
 	corpseshoes = /obj/item/clothing/shoes/combat
 	corpsebelt = /obj/item/weapon/storage/belt/security
 
+/obj/effect/landmark/corpse/wizard
+	name = "Wizard"
+	corpseuniform = /obj/item/clothing/under/lightpurple
+	corpsesuit = /obj/item/clothing/suit/wizrobe
+	corpseback = /obj/item/weapon/storage/backpack
+	corpsehelmet = /obj/item/clothing/head/wizard
+	corpseshoes = /obj/item/clothing/shoes/sandal
+
+/obj/effect/landmark/corpse/wizard/rig
+	corpsesuit = /obj/item/clothing/suit/space/rig/wizard
+	corpsehelmet = /obj/item/clothing/head/helmet/space/rig/wizard
+	corpseback = /obj/item/weapon/tank/oxygen
+	corpsemask = /obj/item/clothing/mask/breath
 
 //////////////////Misc Corpses///////////////////////////
 
